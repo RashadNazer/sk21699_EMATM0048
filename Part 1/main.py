@@ -144,6 +144,23 @@ def update_csv(bank_data):
     for row in bank_data:
         update_bank.writerow(row)
 
+def logout(acc_number):
+    '''
+    Function that logs out the user from application
+    '''
+    
+    print("Do you want to logout? (Y/N): ")
+    answer=input()
+    if(answer=="Y" or answer=="y"):
+        login()
+        
+    elif(answer=="N" or answer=="n"):
+        menu(acc_number)
+        
+    else:
+        print("Enter a valid response")
+        logout(acc_number)
+    
 
 def menu(acc_number):
     '''
