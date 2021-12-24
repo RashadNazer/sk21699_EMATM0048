@@ -55,17 +55,71 @@ def withdraw(acc_number):
     for row in bank_data:
         if acc_number==row[0]:
             current_balance=row[3]
+            
     new_balance=int(current_balance)-int(amount)
-    if int(cur)<0:
-        
+    
+    if int(current_balance) > int(amount):
         for row in bank_data:
-            if acc_number==row[3]:
+            if acc_number==row[0]:
                 row[3]=new_balance
+                transaction(acc_number, "Withdraw", amount, new_balance)
+                update_csv(bank_data)
+                
     else:
         print("Insufficient Balance")
-    transaction(acc_number, "Withdraw", amount, new_balance)
-    update_csv(bank_data)
+        
+        
+def transfer(acc_number):
+    '''
+    Function that transfers money between accounts in the same bank
+    '''
     
+    print("Enter the recipient account number: ")
+    rec_number=input()
+    if acc_number==rec_number:
+        print("You cannot transfer into your own account")
+    p=0
+    for row in bank_data:
+        if rec_number==row[0]:
+            print("Account found")
+            p=1
+            rec_balance=row[3]
+            print("Enter the amount to be transferred: ")
+            amount=input()
+            for row in bank_data:
+                
+                if acc_number==row[0]:
+                    
+                    current_balance=row[3]
+                    if int(current_balance)> int(amount):
+                        
+                        sender_balance=int(current_balance)-int(amount)
+                        rec_balance=int(rec_balance)+int(amount)
+                        row[3]=sender_balance
+                        
+                        transaction(acc_number, "Transfer Out", amount, sender_balance)
+                        for row in bank_data:
+                            if rec_number==row[0]:
+                                row[3]=rec_balance
+                                transaction(rec_number, "Transfer IN", amount, rec_balance)
+                                update_csv(bank_data)
+                                return
+               
+                    else:
+                        print("Insufficient Balance")
+                        return
+    while(p!=1):
+        print("Account not found")
+        return
+                
+                
+        
+                
+    
+   
+        
+     
+                
     
 def transaction(acc_number, char, amount, new_balance):
     '''
@@ -78,6 +132,7 @@ def transaction(acc_number, char, amount, new_balance):
     new_trans=open("transactions.csv","a", newline="")
     update_trans=csv.writer(new_trans)
     update_trans.writerow(session_transaction)
+    session_transaction.clear()
     
 def update_csv(bank_data):
     '''
@@ -109,14 +164,14 @@ def menu(acc_number):
         withdraw(acc_number)
     
     elif choice =='3':
-        transfer()
+        transfer(acc_number)
         
     elif choice == '4':
         login()
         
     else:
         print("Invalid option")
-        menu()
+        menu(acc_number)
 
 
 
