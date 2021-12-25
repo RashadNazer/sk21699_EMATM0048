@@ -1,5 +1,9 @@
 import csv
 import re
+import sys
+import numpy as np
+import pandas as pd
+from random import randint
 from datetime import datetime
 time = datetime.now()
 current_time = time.strftime("%d-%m-%y %H:%M")
@@ -17,6 +21,30 @@ class customer_account:
         self.bank_data = bank_data
         self.session_transaction = session_transaction
         
+    def welcome(self):
+        '''
+        Menu function thats show 3 main options
+
+        '''
+        print("Welcome to The Bank".center(100))
+        print("Please select your option".center(100))
+        print("1. Login".center(100))
+        print("2. Create account".center(100))
+        print("3. Shutdown".center(100))
+        choice=input()
+
+        if choice == '1':
+            customer_account.login(self)
+        elif choice == '2':
+            
+            online_bank.create_account(self)
+        elif choice == '3':
+            sys.exit()
+            
+        else:
+            print("Invalid option")
+            customer_account.welcome(self)
+
 
     def login(self):
         '''
@@ -40,13 +68,13 @@ class customer_account:
                 pin = input("Enter your PIN: ")
                 if pin == row[1]:
                     print("Login Succesful")
-                    customer_account.menu(self, acc_number, self.bank_data)
+                    customer_account.menu(self, acc_number)
                     break
                 else:
-                    print("Incorrect PIN")
-                    break
+                    print("Incorrect PIN. Please try again")
+                    customer_account.login(self)
         if found == 0:
-            print("Account Not Found. Please Try again")
+            print("Account Not Found or Invalid Data. Please Try again")
             customer_account.login(self)
                 
 
@@ -54,36 +82,47 @@ class customer_account:
         '''
         Function that deposits money into account
         '''
-        print("Enter the amount to be deposited: ")
-        amount = input()
+        try:
+            amount = float(input("Enter the amount to be deposited: "))
+        except ValueError:
+            print("You must enter a valid number.")
+            customer_account.menu(self, acc_number)
+        
+        
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
-        new_balance = int(current_balance)+int(amount)
+        new_balance = float(current_balance)+float(amount)
         for row in self.bank_data:
             if acc_number == row[0]:
                 row[3] = new_balance
         online_bank.transaction(
             self, acc_number, "Deposit", amount, new_balance)
-        online_bank.update_csv(self)
+        bank_df = pd.DataFrame(self.bank_data)
+        bank_df.to_csv('bank.csv', index=False, header=False)
 
     def withdraw(self, acc_number, transactional_fees):
         '''
         Function that withdraws amount from account.
 
         '''
-        print("Enter the amount to be withdrawn: ")
-        amount = input()
+        try:
+            amount = float(input("Enter the amount to withdraw: "))
+        except ValueError:
+            print("You must enter a valid number.")
+            customer_account.menu(self, acc_number)
+        
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
-        new_balance = int(current_balance)-int(amount)+transactional_fees
-        if int(current_balance) > int(amount):
+        new_balance = float(current_balance)-float(amount)+transactional_fees
+        if float(current_balance) > float(amount):
             for row in self.bank_data:
                 if acc_number == row[0]:
                     row[3] = new_balance
                     online_bank.transaction(self, acc_number, "Withdraw", amount, new_balance)
-                    online_bank.update_csv(self)
+                    bank_df = pd.DataFrame(self.bank_data)
+                    bank_df.to_csv('bank.csv', index=False, header=False)
         else:
             print("Insufficient Balance")
 
@@ -95,24 +134,34 @@ class customer_account:
         '''
         print("Enter the recipient account number: ")
         rec_number = input()
+        amount=10000
+        
         if acc_number == rec_number:
             print("You cannot transfer into your own account")
+            customer_account.menu(self, acc_number)
         p = 0
         for row in self.bank_data:
             if rec_number == row[0]:
                 print("Account found")
                 p = 1
                 rec_balance = row[3]
-                print("Enter the amount to be transferred: ")
-                amount = input()
-                if(int(amount) <= 1000):
+                
+                try:
+                    amount = float(input("Enter the amount to be transferred: "))
+                except ValueError:
+                    print("You must enter a valid number.")
+                    customer_account.menu(self, acc_number)
+                
+                if(float(amount) <= 1000):
                     online_bank.transfer(self, acc_number, rec_number, rec_balance, amount)
+                    customer_account.menu(self, acc_number)
                 else:
                     print("Transfer to another account restricted to 1000. Please enter a valid amount.")
                     customer_account.start_transfer(self, acc_number)
         while(p != 1):
             print("Account not found")
-            return
+            customer_account.menu(self, acc_number)
+            
 
     def change_pin(self, acc_number):
         '''
@@ -142,12 +191,13 @@ class customer_account:
                         for row in self.bank_data:
                             if acc_number == row[0]:
                                 row[1] = new_pin
-                                online_bank.update_csv(self)
+                                bank_df = pd.DataFrame(self.bank_data)
+                                bank_df.to_csv('bank.csv', index=False, header=False)
                     else:
                         print("Invalid Password")
                         customer_account.change_pin(self, acc_number)
 
-    def menu(self, acc_number, bank_data):
+    def menu(self, acc_number):
         '''
         Menu function that redirects user to appropriate function based on the input from user
         '''
@@ -164,7 +214,7 @@ class customer_account:
         if choice == '1':
             customer_account.deposit(self, acc_number)
         elif choice == '2':
-            for row in bank_data:
+            for row in self.bank_data:
                 if row[0]==acc_number:
                     
                     if row[4]=="Savings":
@@ -187,25 +237,61 @@ class customer_account:
 
 
 class online_bank(customer_account):
-    '''
-    Function that transfers money between accounts in the same bank
-    '''
     
+    
+    def create_account(self):
+        '''
+        Function that creates account
+        '''
+        
+        print("Please enter your name: ")
+        name=input()
+        
+        print("Enter the type of account: Savings(S) or Checking(C)")
+        account_type=input()
+        if account_type.lower() == 's':
+            account='Savings'
+        elif account_type.lower() == 'c':
+            account='Checking'   
+        else:
+            print("Invalid option")
+            online_bank.create_account(self)
+        pin=randint(1000, 9999)
+        array = np.array(self.bank_data)
+        index = array.shape[0]
+        print(index)
+        acc_number = 1000 + index
+        status=0
+        balance=0
+        new_account=[acc_number,pin,name,balance,account,current_time,status]
+        
+        new_acc=open("bank.csv","a", newline="")
+        update_bank=csv.writer(new_acc)
+        update_bank.writerow(new_account)
+        new_account.clear()
+        print("Bank account created successfully. Your PIN is "+ str(pin))
+        print("Please change your PIN after logging in.")
+        customer_account.welcome(self)
     
     def transfer(self, acc_number, rec_number, rec_balance, amount):
+        '''
+        Function that transfers money between accounts in the same bank
+        '''
+        
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
-                if int(current_balance) > int(amount):
-                    sender_balance = int(current_balance)-int(amount)
-                    rec_balance = int(rec_balance)+int(amount)
+                if float(current_balance) > float(amount):
+                    sender_balance = float(current_balance)-float(amount)
+                    rec_balance = float(rec_balance)+float(amount)
                     row[3] = sender_balance
                     online_bank.transaction(self, acc_number, "Transfer Out", amount, sender_balance)
                     for row in self.bank_data:
                         if rec_number == row[0]:
                             row[3] = rec_balance
                             online_bank.transaction(self, rec_number, "Transfer IN", amount, rec_balance)
-                            online_bank.update_csv(self)
+                            bank_df = pd.DataFrame(self.bank_data)
+                            bank_df.to_csv('bank.csv', index=False, header=False)
                             return
                 else:
                     print("Insufficient Balance")
@@ -224,16 +310,7 @@ class online_bank(customer_account):
         update_trans.writerow(self.session_transaction)
         self.session_transaction.clear()
 
-    def update_csv(self):
-        '''
-        Function that updates banks.csv file
-
-        '''
-        new_data = open("bank.csv", "w+", newline="")
-        update_bank = csv.writer(new_data)
-        for row in self.bank_data:
-            update_bank.writerow(row)
-
+        
     def logout(self, acc_number):
         '''
         Function that logs out the user from application
@@ -241,18 +318,19 @@ class online_bank(customer_account):
         print("Do you want to logout? (Y/N): ")
         answer = input()
         if(answer == "Y" or answer == "y"):
-            customer_account.login(self)
+            customer_account.welcome(self)
 
         elif(answer == "N" or answer == "n"):
             customer_account.menu(self, acc_number)
 
         else:
             print("Enter a valid response")
-            online_bank.logout(acc_number)
+            online_bank.logout(self,acc_number)
 
     def transaction_history(self, acc_number):
         '''
-        Function that prints transaction history by reading transactions.csv
+        Function that records transaction details and store it in transaction.csv file
+
         '''
         history_print=[["Account Number","Transaction Type","Amount","Updated Balance","Time"]]
         history = open("transactions.csv", "r")
@@ -270,6 +348,7 @@ class online_bank(customer_account):
         for row in history_print:
             row = "".join(element.ljust(column_width + 2)for element in row)
             print(row)
+        customer_account.menu(self, acc_number)
 
     def calculate_interest(self, acc_number, rate):
         '''
@@ -290,7 +369,8 @@ class online_bank(customer_account):
                 new_balance='%.2f'%new_balance
                 row[3]=new_balance
                 row[5]=current_time
-                online_bank.update_csv(self)
+                bank_df = pd.DataFrame(self.bank_data)
+                bank_df.to_csv('bank.csv', index=False, header=False)
     
     def freeze(self, acc_number):
         """
@@ -302,7 +382,8 @@ class online_bank(customer_account):
             for row in self.bank_data:
                 if row[0]==acc_number:
                     row[6]=1
-                    online_bank.update_csv(self)
+                    bank_df = pd.DataFrame(self.bank_data)
+                    bank_df.to_csv('bank.csv', index=False, header=False)
             
         elif(choice == "N" or choice == "n"):
             customer_account.menu(self, acc_number)
@@ -341,4 +422,10 @@ class checking_account(online_bank,customer_account):
         
 
 new_instance = customer_account()
-new_instance.login()
+new_instance.welcome()
+
+
+    
+
+
+
