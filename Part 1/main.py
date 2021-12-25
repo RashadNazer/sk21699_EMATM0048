@@ -2,7 +2,7 @@ import csv
 import re
 from datetime import datetime
 time = datetime.now()
-current_time = time.strftime("%d-%m-%y %H:%M:%S")
+current_time = time.strftime("%d-%m-%y %H:%M")
 
 
 class customer_account:
@@ -11,19 +11,32 @@ class customer_account:
     bank_data = [row for row in bank_csv]
     customer.close()
     session_transaction = []
+    
 
     def _init_(self, bank_data, session_transaction):
         self.bank_data = bank_data
         self.session_transaction = session_transaction
+        
 
     def login(self):
         '''
         Login function that reads the bank.csv files in the depository and stores the details in a list.
         It also verifies the credentials the user inputs
         '''
+        for row in self.bank_data:
+            if row[4]=="Checking":
+                acc_number=row[0]
+                checking_account.update_balance(self, acc_number)
+        
+        found=0
         acc_number = input("Enter the Account Number: ")
         for row in self.bank_data:
             if acc_number == row[0]:
+                found=1
+                status=row[6]
+                if status=='1':
+                    print("Sorry. Your account is frozen. Please contact the nearest branch for further details.")
+                    return
                 pin = input("Enter your PIN: ")
                 if pin == row[1]:
                     print("Login Succesful")
@@ -32,6 +45,10 @@ class customer_account:
                 else:
                     print("Incorrect PIN")
                     break
+        if found == 0:
+            print("Account Not Found. Please Try again")
+            customer_account.login(self)
+                
 
     def deposit(self, acc_number):
         '''
@@ -140,7 +157,8 @@ class customer_account:
         print("3. Transfer".center(100))
         print("4. Change PIN".center(100))
         print("5. Transaction History".center(100))
-        print("6. Logout".center(100))
+        print("6. Freeze Account".center(100))
+        print("7. Logout".center(100))
         print("Enter your choice= ")
         choice = input()
         if choice == '1':
@@ -160,19 +178,21 @@ class customer_account:
         elif choice == '5':
             online_bank.transaction_history(self, acc_number)
         elif choice == '6':
-            online_bank.logout(self, acc_number)
-        elif choice=='7':
-            checking_account.update_balance(self, acc_number, bank_data)
+            online_bank.freeze(self, acc_number)
+        elif choice == '7':
+            online_bank.logout(self, acc_number)   
         else:
             print("Invalid option")
             customer_account.menu(self, acc_number)
 
 
 class online_bank(customer_account):
+    '''
+    Function that transfers money between accounts in the same bank
+    '''
+    
+    
     def transfer(self, acc_number, rec_number, rec_balance, amount):
-        '''
-        Function that transfers money between accounts in the same bank
-        '''
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
@@ -251,22 +271,46 @@ class online_bank(customer_account):
             row = "".join(element.ljust(column_width + 2)for element in row)
             print(row)
 
-    def calculate_interest(self, acc_number, rate,bank_data):
+    def calculate_interest(self, acc_number, rate):
         '''
         Function that calculates interest
         '''
-        for row in bank_data:
+        for row in self.bank_data:
             if row[0]==acc_number:
                 last_updated=row[5]
                 
-                format="%d-%m-%y %H:%M:%S"
+                format="%d-%m-%y %H:%M"
                 time_period=datetime.strptime(current_time , format) - datetime.strptime(last_updated , format)
-               
+                time_period = time_period.days
                 
-                print(time_period)
+                interest_rate=time_period*rate
+                current_balance=row[3]
+                new_balance=float(current_balance)*(1+float(interest_rate))
+                
+                new_balance='%.2f'%new_balance
+                row[3]=new_balance
+                row[5]=current_time
+                online_bank.update_csv(self)
     
-    
-    
+    def freeze(self, acc_number):
+        """
+        Function that freeze the account of the user
+        """
+        print("Are you sure you want to freeze your account?")
+        choice=input()
+        if(choice == "Y" or choice == "y"):
+            for row in self.bank_data:
+                if row[0]==acc_number:
+                    row[6]=1
+                    online_bank.update_csv(self)
+            
+        elif(choice == "N" or choice == "n"):
+            customer_account.menu(self, acc_number)
+
+        else:
+            print("Enter a valid response")
+            online_bank.logout(acc_number)    
+            
 class savings_account(online_bank):
     
     """A bank account that charges for withdrawals."""
@@ -277,18 +321,23 @@ class savings_account(online_bank):
         customer_account.withdraw(self, acc_number, transactional_fees)
         
            
-class checking_account(online_bank):
-    
+class checking_account(online_bank,customer_account):
     """
     A bank account that gives interest payments
     """
+    
     def withdraw(self, acc_number):
         transactional_fees = 0
         customer_account.withdraw(self, acc_number, transactional_fees)
     
-    def update_balance(self, acc_number,bank_data):
-        interest_rate=0.05
-        online_bank.calculate_interest(self, acc_number, interest_rate, bank_data)
+    def update_balance(self, acc_number):
+        # Annual interest rate =5%
+        # Daily interest rate =0.0137%
+        interest_rate=0.000137
+        for row in self.bank_data:
+            if row[4]=="Checking":
+                
+                online_bank.calculate_interest(self, acc_number, interest_rate)
         
 
 new_instance = customer_account()
