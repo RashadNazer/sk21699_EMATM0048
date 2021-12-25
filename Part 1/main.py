@@ -2,7 +2,7 @@ import csv
 import re
 from datetime import datetime
 time = datetime.now()
-current_time = time.strftime("%d/%m/%y %H:%M:%S")
+current_time = time.strftime("%d-%m-%y %H:%M:%S")
 
 
 class customer_account:
@@ -27,7 +27,7 @@ class customer_account:
                 pin = input("Enter your PIN: ")
                 if pin == row[1]:
                     print("Login Succesful")
-                    customer_account.menu(self, acc_number)
+                    customer_account.menu(self, acc_number, self.bank_data)
                     break
                 else:
                     print("Incorrect PIN")
@@ -50,7 +50,7 @@ class customer_account:
             self, acc_number, "Deposit", amount, new_balance)
         online_bank.update_csv(self)
 
-    def withdraw(self, acc_number):
+    def withdraw(self, acc_number, transactional_fees):
         '''
         Function that withdraws amount from account.
 
@@ -60,13 +60,12 @@ class customer_account:
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
-        new_balance = int(current_balance)-int(amount)
+        new_balance = int(current_balance)-int(amount)+transactional_fees
         if int(current_balance) > int(amount):
             for row in self.bank_data:
                 if acc_number == row[0]:
                     row[3] = new_balance
-                    online_bank.transaction(
-                        self, acc_number, "Withdraw", amount, new_balance)
+                    online_bank.transaction(self, acc_number, "Withdraw", amount, new_balance)
                     online_bank.update_csv(self)
         else:
             print("Insufficient Balance")
@@ -90,11 +89,9 @@ class customer_account:
                 print("Enter the amount to be transferred: ")
                 amount = input()
                 if(int(amount) <= 1000):
-                    online_bank.transfer(
-                        self, acc_number, rec_number, rec_balance, amount)
+                    online_bank.transfer(self, acc_number, rec_number, rec_balance, amount)
                 else:
-                    print(
-                        "Transfer to another account restricted to 1000. Please enter a valid amount.")
+                    print("Transfer to another account restricted to 1000. Please enter a valid amount.")
                     customer_account.start_transfer(self, acc_number)
         while(p != 1):
             print("Account not found")
@@ -115,8 +112,7 @@ class customer_account:
         for row in self.bank_data:
             if acc_number == row[0]:
                 if new_pin == row[1] or new_pin == row[0] or new_pin == row[2]:
-                    print(
-                        "You cannot enter current PIN or use your account number or name as PIN. ")
+                    print("You cannot enter current PIN or use your account number or name as PIN. ")
                     customer_account.change_pin(self, acc_number)
                 else:
                     password_requirements = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,10}$"
@@ -134,11 +130,10 @@ class customer_account:
                         print("Invalid Password")
                         customer_account.change_pin(self, acc_number)
 
-    def menu(self, acc_number):
+    def menu(self, acc_number, bank_data):
         '''
         Menu function that redirects user to appropriate function based on the input from user
         '''
-        
         print("MENU".center(100))
         print("1. Deposit".center(100))
         print("2. Withdraw".center(100))
@@ -151,7 +146,13 @@ class customer_account:
         if choice == '1':
             customer_account.deposit(self, acc_number)
         elif choice == '2':
-            customer_account.withdraw(self, acc_number)
+            for row in bank_data:
+                if row[0]==acc_number:
+                    
+                    if row[4]=="Savings":
+                        savings_account.withdraw(self, acc_number)
+                    else:
+                        checking_account.withdraw(self, acc_number)
         elif choice == '3':
             customer_account.start_transfer(self, acc_number)
         elif choice == '4':
@@ -160,13 +161,14 @@ class customer_account:
             online_bank.transaction_history(self, acc_number)
         elif choice == '6':
             online_bank.logout(self, acc_number)
+        elif choice=='7':
+            checking_account.update_balance(self, acc_number, bank_data)
         else:
             print("Invalid option")
             customer_account.menu(self, acc_number)
 
 
 class online_bank(customer_account):
-    
     def transfer(self, acc_number, rec_number, rec_balance, amount):
         '''
         Function that transfers money between accounts in the same bank
@@ -178,13 +180,11 @@ class online_bank(customer_account):
                     sender_balance = int(current_balance)-int(amount)
                     rec_balance = int(rec_balance)+int(amount)
                     row[3] = sender_balance
-                    online_bank.transaction(
-                        self, acc_number, "Transfer Out", amount, sender_balance)
+                    online_bank.transaction(self, acc_number, "Transfer Out", amount, sender_balance)
                     for row in self.bank_data:
                         if rec_number == row[0]:
                             row[3] = rec_balance
-                            online_bank.transaction(
-                                self, rec_number, "Transfer IN", amount, rec_balance)
+                            online_bank.transaction(self, rec_number, "Transfer IN", amount, rec_balance)
                             online_bank.update_csv(self)
                             return
                 else:
@@ -196,8 +196,7 @@ class online_bank(customer_account):
         Function that records transaction details and store it in transaction.csv file
 
         '''
-        this_transaction = [acc_number, char,
-                            amount, new_balance, current_time]
+        this_transaction = [acc_number, char,amount, new_balance, current_time]
         self.session_transaction.extend(this_transaction)
         print(self.session_transaction)
         new_trans = open("transactions.csv", "a", newline="")
@@ -235,7 +234,6 @@ class online_bank(customer_account):
         '''
         Function that prints transaction history by reading transactions.csv
         '''
-        
         history_print=[["Account Number","Transaction Type","Amount","Updated Balance","Time"]]
         history = open("transactions.csv", "r")
         trans_history = csv.reader(history)
@@ -253,8 +251,45 @@ class online_bank(customer_account):
             row = "".join(element.ljust(column_width + 2)for element in row)
             print(row)
 
+    def calculate_interest(self, acc_number, rate,bank_data):
+        '''
+        Function that calculates interest
+        '''
+        for row in bank_data:
+            if row[0]==acc_number:
+                last_updated=row[5]
+                
+                format="%d-%m-%y %H:%M:%S"
+                time_period=datetime.strptime(current_time , format) - datetime.strptime(last_updated , format)
+               
+                
+                print(time_period)
+    
+    
+    
+class savings_account(online_bank):
+    
+    """A bank account that charges for withdrawals."""
+    
         
-
+    def withdraw(self, acc_number):
+        transactional_fees = 5
+        customer_account.withdraw(self, acc_number, transactional_fees)
+        
+           
+class checking_account(online_bank):
+    
+    """
+    A bank account that gives interest payments
+    """
+    def withdraw(self, acc_number):
+        transactional_fees = 0
+        customer_account.withdraw(self, acc_number, transactional_fees)
+    
+    def update_balance(self, acc_number,bank_data):
+        interest_rate=0.05
+        online_bank.calculate_interest(self, acc_number, interest_rate, bank_data)
+        
 
 new_instance = customer_account()
 new_instance.login()
