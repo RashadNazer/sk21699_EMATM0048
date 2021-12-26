@@ -28,9 +28,10 @@ class customer_account:
         '''
         print("Welcome to The Bank".center(100))
         print("Please select your option".center(100))
-        print("1. Login".center(100))
-        print("2. Create account".center(100))
-        print("3. Shutdown".center(100))
+        print("1. Login")
+        print("2. Create account")
+        print("3. Admin Login")
+        print("4. Shutdown")
         choice=input()
 
         if choice == '1':
@@ -39,7 +40,13 @@ class customer_account:
             
             online_bank.create_account(self)
         elif choice == '3':
+            print("Enter password: ")
+            password=input()
+            if password=='Sdpa@123':
+                online_bank.admin(self)
+        elif choice == '4':
             sys.exit()
+        
             
         else:
             print("Invalid option")
@@ -100,6 +107,7 @@ class customer_account:
             self, acc_number, "Deposit", amount, new_balance)
         bank_df = pd.DataFrame(self.bank_data)
         bank_df.to_csv('bank.csv', index=False, header=False)
+        customer_account.menu(self, acc_number)
 
     def withdraw(self, acc_number, transactional_fees):
         '''
@@ -123,8 +131,10 @@ class customer_account:
                     online_bank.transaction(self, acc_number, "Withdraw", amount, new_balance)
                     bank_df = pd.DataFrame(self.bank_data)
                     bank_df.to_csv('bank.csv', index=False, header=False)
+                    customer_account.menu(self, acc_number)
         else:
             print("Insufficient Balance")
+            customer_account.menu(self, acc_number)
 
     def start_transfer(self, acc_number):
         '''
@@ -238,12 +248,73 @@ class customer_account:
 
 class online_bank(customer_account):
     
+    def admin(self):
+        '''
+        Admin function that shows user and transaction details. Also lets change freeze status of account
+        '''
+        
+        print("MENU".center(100))
+        print("1. Show User details".center(100))
+        print("2. Show transaction details".center(100))
+        print("3. Change Freeze Status".center(100))
+        print("4. Logout".center(100))
+        print("Enter your choice= ")
+        choice = input()
+        if choice == '1':
+            print_data=[]
+            print_data=self.bank_data
+            for row in print_data:
+                del row[1]
+            
+            
+            width=max(len(x) for l in print_data for x in l)
+            
+            for row in print_data:
+                print("".join(x.ljust(width+2) for x in row))
+                
+            online_bank.admin(self)
+        elif choice == '2':
+            history = open("transactions.csv", "r")
+            trans_history = csv.reader(history)
+            history_data = [row for row in trans_history]
+            history.close()
+            width=max(len(x) for l in history_data for x in l)
+            
+            for row in history_data:
+                print("".join(x.ljust(width+2) for x in row))
+            online_bank.admin(self)
+        elif choice == '3':
+            print("Enter the account number to be frozen/unfrozen: ")
+            acc_number=input()
+            print("Enter the action to be taken: Freeze(F)/Unfreeze(U) ")
+            status=input()
+            if status.lower() == 'f':
+                freeze_status=1
+            elif status.lower() == 'u':
+                freeze_status=0  
+            else:
+                print("Invalid option")
+                online_bank.admin(self)
+            for row in self.bank_data:
+                if acc_number == row[0]:
+                    row[6]=freeze_status
+                    bank_df = pd.DataFrame(self.bank_data)
+                    bank_df.to_csv('bank.csv', index=False, header=False)
+                    online_bank.admin(self)
+        elif choice == '4':
+            customer_account.welcome(self)
+        else:
+            print("Invalid option")
+            online_bank.admin(self)
+            
+            
+            
+            
     
     def create_account(self):
         '''
         Function that creates account
         '''
-        
         print("Please enter your name: ")
         name=input()
         
@@ -277,7 +348,6 @@ class online_bank(customer_account):
         '''
         Function that transfers money between accounts in the same bank
         '''
-        
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
@@ -292,9 +362,11 @@ class online_bank(customer_account):
                             online_bank.transaction(self, rec_number, "Transfer IN", amount, rec_balance)
                             bank_df = pd.DataFrame(self.bank_data)
                             bank_df.to_csv('bank.csv', index=False, header=False)
+                            customer_account.menu(self, acc_number)
                             return
                 else:
                     print("Insufficient Balance")
+                    customer_account.menu(self, acc_number)
                     return
 
     def transaction(self, acc_number, char, amount, new_balance):
@@ -304,7 +376,6 @@ class online_bank(customer_account):
         '''
         this_transaction = [acc_number, char,amount, new_balance, current_time]
         self.session_transaction.extend(this_transaction)
-        print(self.session_transaction)
         new_trans = open("transactions.csv", "a", newline="")
         update_trans = csv.writer(new_trans)
         update_trans.writerow(self.session_transaction)
@@ -384,6 +455,7 @@ class online_bank(customer_account):
                     row[6]=1
                     bank_df = pd.DataFrame(self.bank_data)
                     bank_df.to_csv('bank.csv', index=False, header=False)
+                    customer_account.welcome(self)
             
         elif(choice == "N" or choice == "n"):
             customer_account.menu(self, acc_number)
