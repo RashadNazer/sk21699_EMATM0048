@@ -29,7 +29,7 @@ class customer_account:
         print("\n")
         print("Welcome to The Bank".center(100))
         print("Please select your option".center(100))
-        print("1. Login")
+        print("1. Login to account")
         print("2. Create account")
         print("3. Admin Login")
         print("4. Shutdown")
@@ -56,9 +56,9 @@ class customer_account:
 
     def login(self):
         '''
-        Login function that reads the bank.csv files in the depository and stores the details in a list.
-        It also verifies the credentials the user inputs
+        Login function verifies the credentials the user inputs
         '''
+        # Update balance of checking account holders by calling update_balance()
         for row in self.bank_data:
             if row[4]=="Checking":
                 acc_number=row[0]
@@ -426,27 +426,7 @@ class online_bank(customer_account):
             print(row)
         customer_account.menu(self, acc_number)
 
-    def calculate_interest(self, acc_number, rate):
-        '''
-        Function that calculates interest
-        '''
-        for row in self.bank_data:
-            if row[0]==acc_number:
-                last_updated=row[5]
-                
-                format="%d-%m-%y %H:%M"
-                time_period=datetime.strptime(current_time , format) - datetime.strptime(last_updated , format)
-                time_period = time_period.days
-                
-                interest_rate=time_period*rate
-                current_balance=row[3]
-                new_balance=float(current_balance)*(1+float(interest_rate))
-                
-                new_balance='%.2f'%new_balance
-                row[3]=new_balance
-                row[5]=current_time
-                bank_df = pd.DataFrame(self.bank_data)
-                bank_df.to_csv('bank.csv', index=False, header=False)
+   
     
     def freeze(self, acc_number):
         """
@@ -475,6 +455,9 @@ class savings_account(online_bank):
     
         
     def withdraw(self, acc_number):
+        """
+        Function that assigns transactional fees and passes to withdraw()
+        """
         transactional_fees = 5
         customer_account.withdraw(self, acc_number, transactional_fees)
         
@@ -485,17 +468,37 @@ class checking_account(online_bank,customer_account):
     """
     
     def withdraw(self, acc_number):
+        """
+        Function that assigns transactional fees and passes to withdraw()
+        """
         transactional_fees = 0
         customer_account.withdraw(self, acc_number, transactional_fees)
     
     def update_balance(self, acc_number):
+        """
+        Function that passes interest rate to calculate_interest()
+
+        """
         # Annual interest rate =5%
         # Daily interest rate =0.0137%
         interest_rate=0.000137
         for row in self.bank_data:
-            if row[4]=="Checking":
+            if row[0]==acc_number:
+                last_updated=row[5]
                 
-                online_bank.calculate_interest(self, acc_number, interest_rate)
+                format="%d-%m-%y %H:%M"
+                time_period=datetime.strptime(current_time , format) - datetime.strptime(last_updated , format)
+                time_period = time_period.days
+                
+                rate = time_period * interest_rate
+                current_balance=row[3]
+                new_balance=float(current_balance)*(1+float(rate))
+                
+                new_balance='%.2f'%new_balance
+                row[3]=new_balance
+                row[5]=current_time
+                bank_df = pd.DataFrame(self.bank_data)
+                bank_df.to_csv('bank.csv', index=False, header=False)
         
 
 new_instance = customer_account()

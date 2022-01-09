@@ -1,11 +1,11 @@
 Account_Number,PIN,Name,Balance,Account_Type,Last_Updated,Freeze_Status
-1001,1@Aasd,John,27533.92,Checking,16-12-21 12:32,0
+1001,1@Aasd,John,27620.68,Checking,09-01-22 00:49,0
 1002,2345,Dave,31000,Savings,05-12-21 16:32,0
 1003,3456,Alan,25000,Savings,05-12-21 16:32,0
-1004,4567,Ayush,25030.83,Checking,16-12-21 12:32,0
-1005,5678,Zahara,27530.83,Checking,16-12-21 12:32,0
+1004,4567,Ayush,25109.70,Checking,09-01-22 00:49,0
+1005,5678,Zahara,27617.58,Checking,09-01-22 00:49,0
 1006,6789,Cristiano,35010.0,Savings,05-12-21 16:32,0
-1007,7890,Messi ,25471.52,Checking,16-12-21 12:32,1
+1007,7890,Messi ,25551.78,Checking,09-01-22 00:49,1
 1008,1245,Mourinho,25000,Savings,05-12-21 16:32,0
 1009,2356,Guardiola,25000,Savings,05-12-21 16:32,0
-1010,3467,Obama,25030.83,Checking,16-12-21 12:32,0
+1010,3467,Obama,25109.70,Checking,09-01-22 00:49,0
