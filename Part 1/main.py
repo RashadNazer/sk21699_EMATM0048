@@ -26,6 +26,7 @@ class customer_account:
         Menu function thats show 3 main options
 
         '''
+        print("\n")
         print("Welcome to The Bank".center(100))
         print("Please select your option".center(100))
         print("1. Login")
@@ -71,6 +72,7 @@ class customer_account:
                 status=row[6]
                 if status=='1':
                     print("Sorry. Your account is frozen. Please contact the nearest branch for further details.")
+                    customer_account.welcome(self)
                     return
                 pin = input("Enter your PIN: ")
                 if pin == row[1]:
@@ -107,6 +109,7 @@ class customer_account:
             self, acc_number, "Deposit", amount, new_balance)
         bank_df = pd.DataFrame(self.bank_data)
         bank_df.to_csv('bank.csv', index=False, header=False)
+        print("Amount Deposited Successfully")
         customer_account.menu(self, acc_number)
 
     def withdraw(self, acc_number, transactional_fees):
@@ -123,7 +126,7 @@ class customer_account:
         for row in self.bank_data:
             if acc_number == row[0]:
                 current_balance = row[3]
-        new_balance = float(current_balance)-float(amount)+transactional_fees
+        new_balance = float(current_balance)-float(amount)-transactional_fees
         if float(current_balance) > float(amount):
             for row in self.bank_data:
                 if acc_number == row[0]:
@@ -131,6 +134,7 @@ class customer_account:
                     online_bank.transaction(self, acc_number, "Withdraw", amount, new_balance)
                     bank_df = pd.DataFrame(self.bank_data)
                     bank_df.to_csv('bank.csv', index=False, header=False)
+                    print("Amount Withdrawn Successfully")
                     customer_account.menu(self, acc_number)
         else:
             print("Insufficient Balance")
@@ -147,7 +151,7 @@ class customer_account:
         amount=10000
         
         if acc_number == rec_number:
-            print("You cannot transfer into your own account")
+            print("You cannot transfer into your own account.")
             customer_account.menu(self, acc_number)
         p = 0
         for row in self.bank_data:
@@ -211,14 +215,16 @@ class customer_account:
         '''
         Menu function that redirects user to appropriate function based on the input from user
         '''
+        print("\n")
+        print("Welcome to The Bank".center(100))
         print("MENU".center(100))
-        print("1. Deposit".center(100))
-        print("2. Withdraw".center(100))
-        print("3. Transfer".center(100))
-        print("4. Change PIN".center(100))
-        print("5. Transaction History".center(100))
-        print("6. Freeze Account".center(100))
-        print("7. Logout".center(100))
+        print("1. Deposit")
+        print("2. Withdraw")
+        print("3. Transfer")
+        print("4. Change PIN")
+        print("5. Transaction History")
+        print("6. Freeze Account")
+        print("7. Logout")
         print("Enter your choice= ")
         choice = input()
         if choice == '1':
@@ -252,7 +258,7 @@ class online_bank(customer_account):
         '''
         Admin function that shows user and transaction details. Also lets change freeze status of account
         '''
-        
+        print("\n")
         print("MENU".center(100))
         print("1. Show User details".center(100))
         print("2. Show transaction details".center(100))
@@ -265,10 +271,7 @@ class online_bank(customer_account):
             print_data=self.bank_data
             for row in print_data:
                 del row[1]
-            
-            
-            width=max(len(x) for l in print_data for x in l)
-            
+            width=max(len(x) for l in print_data for x in l)  
             for row in print_data:
                 print("".join(x.ljust(width+2) for x in row))
                 
@@ -301,6 +304,8 @@ class online_bank(customer_account):
                     bank_df = pd.DataFrame(self.bank_data)
                     bank_df.to_csv('bank.csv', index=False, header=False)
                     online_bank.admin(self)
+                else:
+                    print("Account not found")
         elif choice == '4':
             customer_account.welcome(self)
         else:
@@ -331,7 +336,7 @@ class online_bank(customer_account):
         array = np.array(self.bank_data)
         index = array.shape[0]
         print(index)
-        acc_number = 1000 + index
+        acc_number = 1001000 + index
         status=0
         balance=0
         new_account=[acc_number,pin,name,balance,account,current_time,status]
