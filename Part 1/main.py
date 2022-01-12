@@ -369,7 +369,7 @@ class online_bank(customer_account):
         '''
         Function that creates account
         '''
-        print("Please enter your name: ")
+        print("Please enter your Name: ")
         name=input()
         #Getting account type from user
         print("Enter the type of account: Savings(S) or Checking(C)")
